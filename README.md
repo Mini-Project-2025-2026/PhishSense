@@ -1,180 +1,249 @@
 # PhishSense – Explainable Intelligent Phishing Detection System
 
-PhishSense is a multi-layered, explainable cybersecurity web application engineered to analyze web addresses (URLs) and detect phishing threats in real time. It combines deterministic heuristic inspection, global threat intelligence feeds, deep learning sequence classification, and safe headless website rendering with strict Server-Side Request Forgery (SSRF) defenses.
+PhishSense is a multi-layered, explainable cybersecurity web application designed to analyze web addresses (URLs) and assess phishing threats in real time. Rather than relying on single-point heuristics or opaque binary verdicts, PhishSense integrates deterministic lexical and domain inspection, live threat intelligence feeds, deep learning sequence classification via **URLBERT**, and safe website preview rendering with strict Server-Side Request Forgery (SSRF) defenses.
+
+---
+
+## Academic Information
+
+* **Institution**: Kwame Nkrumah University of Science and Technology (KNUST)
+* **Department**: Department of Computer Science
+* **Degree**: B.Sc. Computer Science
+* **Student Name**: Adiza Malik
+* **Index Number**: 9026923
+* **Project Supervisor**: Dr. Kate Takyi
+* **Academic Year**: 2025 / 2026
 
 ---
 
 ## Table of Contents
 
-1. [Project Overview](#project-overview)
-2. [Key Features](#key-features)
-3. [System Architecture](#system-architecture)
-4. [Detection Layers & Scoring Logic](#detection-layers--scoring-logic)
+1. [Project Overview](#1-project-overview)
+2. [Problem Statement & Threat Vectors](#2-problem-statement--threat-vectors)
+3. [Main Detection Approach](#3-main-detection-approach)
+4. [System Architecture](#4-system-architecture)
+5. [Current Detection Layers & Components](#5-current-detection-layers--components)
    - [Layer 1: Heuristic Rule Engine (0–40 Points)](#layer-1-heuristic-rule-engine-040-points)
    - [Layer 2: Threat Intelligence Feeds (-10 to 60 Points)](#layer-2-threat-intelligence-feeds--10-to-60-points)
    - [Layer 3: AI & Machine Learning Classification (0–30 Points)](#layer-3-ai--machine-learning-classification-030-points)
-   - [Layer 4: Isolated Preview & SSRF Defense Boundary](#layer-4-isolated-preview--ssrf-defense-boundary)
-   - [Layer 5: Composite Risk Scoring Formula & Ranges](#layer-5-composite-risk-scoring-formula--ranges)
-   - [Layer 6: Explainability Architecture](#layer-6-explainability-architecture)
-5. [Machine Learning Subsystem](#machine-learning-subsystem)
-   - [Production Runtime Model (URLBERT v4 ONNX)](#production-runtime-model-urlbert-v4-onnx)
-   - [Research & Feature Engineering Baseline (Random Forest)](#research--feature-engineering-baseline-random-forest)
-   - [Benchmark Dataset Specifications](#benchmark-dataset-specifications)
-   - [Fail-Safe AI Execution](#fail-safe-ai-execution)
-6. [Threat Intelligence Integrations](#threat-intelligence-integrations)
-7. [Project Structure](#project-structure)
-8. [Installation & Local Setup](#installation--local-setup)
-   - [Prerequisites](#prerequisites)
-   - [1. Backend Setup](#1-backend-setup)
-   - [2. Frontend Setup](#2-frontend-setup)
-   - [3. Machine Learning Setup (Optional Training/Evaluation)](#3-machine-learning-setup-optional-trainingevaluation)
-   - [Environment Variables Configuration](#environment-variables-configuration)
-9. [API Endpoints Reference](#api-endpoints-reference)
-10. [Authentication & History Management](#authentication--history-management)
-11. [System Limitations](#system-limitations)
-12. [License & Academic Attribution](#license--academic-attribution)
+   - [Layer 4: Isolated Website Preview & Reachability Probing](#layer-4-isolated-website-preview--reachability-probing)
+   - [Layer 5: Server-Side Request Forgery (SSRF) Defense Boundary](#layer-5-server-side-request-forgery-ssrf-defense-boundary)
+   - [Layer 6: Composite Risk Scoring & Classification Ranges](#layer-6-composite-risk-scoring--classification-ranges)
+6. [Explainability & Human-Centered Interface](#6-explainability--human-centered-interface)
+7. [Threat Intelligence Providers Implemented](#7-threat-intelligence-providers-implemented)
+8. [AI / Machine Learning Subsystem (URLBERT)](#8-ai--machine-learning-subsystem-urlbert)
+   - [Model Architecture & Specifications](#model-architecture--specifications)
+   - [In-Process ONNX Runtime Integration](#in-process-onnx-runtime-integration)
+   - [Custom WordPiece Tokenizer](#custom-wordpiece-tokenizer)
+   - [Domain-Context Calibration](#domain-context-calibration)
+   - [Softmax & Scoring Formulation](#softmax--scoring-formulation)
+   - [Fail-Safe Error Boundary](#fail-safe-error-boundary)
+9. [Website Preview & Network Security Probing](#9-website-preview--network-security-probing)
+10. [SSRF Protection Architecture](#10-ssrf-protection-architecture)
+11. [Technology Stack](#11-technology-stack)
+    - [Frontend Technology](#frontend-technology)
+    - [Backend Technology](#backend-technology)
+    - [Machine Learning Technology](#machine-learning-technology)
+12. [Project Folder Structure](#12-project-folder-structure)
+13. [Installation & Setup Instructions](#13-installation--setup-instructions)
+    - [Prerequisites](#prerequisites)
+    - [Backend Setup](#backend-setup)
+    - [Frontend Setup](#frontend-setup)
+14. [Environment Variables Configuration](#14-environment-variables-configuration)
+15. [Running the Application](#15-running-the-application)
+16. [Testing & Verification Instructions](#16-testing--verification-instructions)
+17. [API Endpoints Reference](#17-api-endpoints-reference)
+18. [Authentication & Account Management](#18-authentication--account-management)
+19. [Important System Limitations](#19-important-system-limitations)
+20. [Oral Assessment Preparation Notes](#20-oral-assessment-preparation-notes)
 
 ---
 
-## Project Overview
+## 1. Project Overview
 
-Phishing attacks remain the leading vector for credential theft, ransomware deployment, and financial fraud. Modern phishing campaigns frequently employ tactics that defeat single-point detection mechanisms:
+Phishing remains one of the primary delivery vectors for credential theft, unauthorized access, and financial fraud. Modern phishing campaigns deploy sophisticated techniques—such as brand typosquatting, Unicode homoglyphs, sub-domain chaining, and evasion through link shorteners—that defeat simple static blocklists.
 
-* **Zero-day phishing kits** on newly registered domains that have not yet appeared on threat blacklists.
-* **Typosquatting and Unicode homoglyph spoofing** designed to visually impersonate trusted brands (`paypa1.com`, `pinteresl.com`, `apple-login-security.xyz`).
-* **Subdomain nesting, link shorteners, and obfuscated query strings** to evade perimeter firewalls.
+**PhishSense** implements a defense-in-depth security architecture that evaluates incoming URLs concurrently across three distinct analytical paradigms:
+1. **Deterministic Heuristics**: Structural, lexical, protocol, and brand similarity checks that capture known structural anomalies instantly.
+2. **Global Threat Intelligence**: Live threat reputation lookups from VirusTotal and OpenPhish to identify globally flagged campaigns and verified clean domains.
+3. **Deep Learning Sequence Classification**: In-process neural transformer classification via **URLBERT Tiny v4**, which evaluates character-level token sequences for semantic phishing indicators.
 
-PhishSense solves these challenges through a **defense-in-depth, multi-layered pipeline**. Rather than presenting users with an opaque binary verdict or confusing technical logs, PhishSense correlates signals across static heuristics, real-time threat intelligence, and transformer-based neural sequence analysis to generate an **explainable risk score (0–100%)** accompanied by plain-English verdicts and actionable security recommendations.
-
----
-
-## Key Features
-
-* **Multi-Layered Detection Engine**: Evaluates URLs concurrently across deterministic heuristics, live threat intelligence feeds, and machine learning models.
-* **AI-Powered URL Sequence Classification**: Employs an in-process **URLBERT v4** transformer classifier running on ONNX Runtime for sub-20ms neural inference.
-* **13 Deterministic Heuristic Security Checks**: Detects typosquatting, Levenshtein brand distance, homoglyphs, IP hostnames, suspicious TLDs, excessive subdomains, shorteners, unencrypted HTTP, and authentication keywords.
-* **Live Threat Intelligence Integration**: Connects to the **VirusTotal API v3**, **URLhaus API (abuse.ch)**, and **OpenPhish Community Feed** with in-memory caching.
-* **Safe Isolated Website Preview**: Probes server reachability and renders visual website screenshots inside a hardened headless sandbox with DNS pinning and SSRF protection.
-* **Strict SSRF Defenses**: Inspects all resolved IPv4/IPv6 addresses against private, loopback, link-local, carrier-grade NAT, and cloud metadata ranges before making outbound connections.
-* **Explainable Human-Centered Interface**: Features a two-tiered UI: an **Executive Summary** for everyday browsing guidance and **Advanced Security Details** with interactive forensic breakdowns.
-* **Authentication & Scan History**: Built-in user account management supporting 6-digit email OTP verification via SMTP (Nodemailer), password reset tokens, and persistent per-user scan records.
-* **Guest Quota & Dark/Light Theme**: Built-in 3-scan guest allowance, instant sign-up unlock, and responsive Dark/Light UI styled with Tailwind CSS and GSAP micro-animations.
+The platform synthesizes these signals into an explainable **Risk Score (0–100%)**, assigns one of four clear risk classifications, and presents transparent evidence so users understand *why* a web address was flagged.
 
 ---
 
-## System Architecture
+## 2. Problem Statement & Threat Vectors
+
+### The Core Problem
+
+1. **Evasion of Static Blacklists**: Zero-day phishing campaigns often operate on newly registered domains or disposable infrastructure that have not yet been indexed by threat blacklists.
+2. **The "Black-Box" Usability Gap**: Conventional security tools often present users with a binary "Safe" or "Dangerous" label without explaining the underlying rationale, leaving users unable to assess borderline links or learn safe browsing habits.
+3. **Visual Deception**: Attackers register lookalike domains using character substitutions (e.g., `paypa1.com` instead of `paypal.com`) or internationalized domain names (IDN homoglyphs) that visually mimic legitimate brands.
+
+### Attack Patterns Addressed by PhishSense
+
+* **Direct IP Hostnames**: Circumventing domain name systems by linking directly to raw IPv4/IPv6 addresses (e.g., `http://192.168.1.100/login`).
+* **Brand Typosquatting & Impersonation**: Inserting brand names into subdomains or registering edit-distance variations of protected brands.
+* **Homoglyph & IDN Spoofing**: Replacing Latin characters with visually identical Cyrillic, Greek, or Punycode (`xn--`) representations.
+* **High-Abuse TLDs**: Utilizing low-cost or high-abuse top-level domains frequently associated with spam campaigns (`.xyz`, `.top`, `.tk`, etc.).
+* **Protocol Downgrade**: Delivering credential forms over unencrypted plaintext HTTP.
+* **URL Shorteners**: Concealing actual landing page destinations through redirection services (`bit.ly`, `tinyurl.com`, etc.).
+* **Subdomain Complexity**: Stacking multiple subdomain levels to deceive users reading the URL from left to right.
+* **Credential & Urgency Keywords**: Embedding targeted keywords (`login`, `verify`, `banking`, `secure`, `wallet`) into unauthorized hostnames and paths.
+
+---
+
+## 3. Main Detection Approach
+
+PhishSense employs a **defense-in-depth, concurrent multi-layered approach**:
 
 ```text
-                                  ┌───────────────────────────────┐
-                                  │      React 18 / Vite Client   │
-                                  │ (Executive Summary + Forensics)│
-                                  └───────────────┬───────────────┘
-                                                  │ HTTP POST (JSON)
-                                                  ▼
-                                  ┌───────────────────────────────┐
-                                  │    Express.js Backend API     │
-                                  │  (Security Headers, Rate Limit│
-                                  │   SSRF Guard, Auth/History)   │
-                                  └───────────────┬───────────────┘
-                                                  │
-                ┌─────────────────────────────────┼─────────────────────────────────┐
-                │                                 │                                 │
-                ▼                                 ▼                                 ▼
-┌───────────────────────────────┐ ┌───────────────────────────────┐ ┌───────────────────────────────┐
-│     Layer 1: Heuristics       │ │     Layer 2: Threat Intel     │ │       Layer 3: AI / ML        │
-│   (13 Deterministic Rules)    │ │ (VirusTotal, URLhaus, OpenPh) │ │ (URLBERT v4 ONNX Transformer) │
-│        [0 – 40 Points]        │ │       [-10 – 60 Points]       │ │        [0 – 30 Points]        │
-└───────────────┬───────────────┘ └───────────────┬───────────────┘ └───────────────┬───────────────┘
-                │                                 │                                 │
-                └─────────────────────────────────┼─────────────────────────────────┘
-                                                  │
-                                                  ▼
-                                  ┌───────────────────────────────┐
-                                  │      Risk Scoring Engine      │
-                                  │   Final = clamp[0, 100](Sum)  │
-                                  └───────────────┬───────────────┘
-                                                  │
-                                                  ▼
-                                  ┌───────────────────────────────┐
-                                  │     Explainable Response      │
-                                  │  (Score, Verdict, Evidence,   │
-                                  │   Safe Screenshot, Telemetry) │
-                                  └───────────────────────────────┘
+Incoming Raw URL
+       │
+       ▼
+[ Sanitization & Validation ]  ──▶ Strips tags, verifies protocol (HTTP/HTTPS), bounds length
+       │
+       ├───────────────────────────────────────────────┐
+       │                                               │
+       ▼                                               ▼
+[ Concurrent Analytical Pipeline ]             [ Safe Preview Probe ]
+ ├── Layer 1: Heuristic Rule Engine (0–40 pts)  ├── SSRF Validation (Private IP & DNS check)
+ ├── Layer 2: Threat Intelligence (-10–60 pts)  ├── Manual Redirect Follow (Max 3 hops)
+ └── Layer 3: URLBERT AI Inference (0–30 pts)   └── Headless Screenshot Sandbox
+       │                                               │
+       └───────────────────────┬───────────────────────┘
+                               │
+                               ▼
+               [ Risk Scoring & Attribution Engine ]
+                   Final Score = clamp[0, 100](Sum)
+                               │
+                               ▼
+                     [ Explainable Output ]
+                   Executive Summary + Forensics
 ```
 
-### Data Flow
-
-1. **User Submission**: The user submits a raw URL string via the React frontend.
-2. **Sanitization & SSRF Validation**: The Express backend normalizes the protocol, parses the WHATWG URL object, strips HTML tags, and validates destination IP addresses against private network ranges.
-3. **Concurrent Detection Execution**:
-   - The **Rule Engine** evaluates 13 lexical and domain structural checks synchronously.
-   - The **Threat Intelligence Hub** queries VirusTotal, URLhaus, and OpenPhish concurrently (`Promise.all`).
-   - The **AI Service** tokenizes the URL and executes in-process ONNX sequence classification.
-4. **Isolated Preview Dispatch**: In parallel, the backend safely probes destination reachability and generates an isolated screenshot using headless Chromium/Edge.
-5. **Score Aggregation**: The risk scoring engine computes weighted component points, strictly bounds the result between 0 and 100, assigns the risk category, and compiles human-readable security reasons.
-6. **Result Presentation**: The frontend renders the Executive Summary and expandable Advanced Security Details.
+* Each layer contributes independently to a unified, bounded risk score between 0 and 100 points.
+* If any layer is unavailable or encounters a network error (e.g., threat feed timeout), the application handles the failure gracefully and continues evaluating the URL using the remaining active layers.
 
 ---
 
-## Detection Layers & Scoring Logic
+## 4. System Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           CLIENT TIER (Frontend)                            │
+│                  React 18 + Vite SPA + Tailwind CSS + GSAP                  │
+│   [ URL Input ] ── [ Executive Summary ] ── [ Advanced Forensic Details ]  │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ HTTP POST (JSON)
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           SERVER TIER (Backend)                             │
+│                  Node.js / Express.js REST API (Port 5000)                  │
+│   ├── Security Headers (CSP, HSTS, X-Frame-Options: DENY)                   │
+│   ├── In-Memory Rate Limiting (60 requests/min per IP)                      │
+│   ├── Input Sanitization & Normalization                                    │
+│   └── Session Authentication & Scan History Persistence                     │
+└───────────────────┬─────────────────────────────────────┬───────────────────┘
+                    │                                     │
+                    ▼                                     ▼
+┌─────────────────────────────────────┐ ┌─────────────────────────────────────┐
+│         DETECTION SUBSYSTEM         │ │           PREVIEW SUBSYSTEM         │
+│                                     │ │                                     │
+│  Layer 1: Heuristic Rule Engine     │ │  SSRF Validator                     │
+│  - 13 Deterministic Rules (0–40 pts)│ │  - DNS A/AAAA inspection            │
+│                                     │ │  - Private/Loopback/Metadata block  │
+│  Layer 2: Threat Intelligence Hub   │ │                                     │
+│  - VirusTotal API v3                │ │  Safe Headless Browser Sandbox      │
+│  - OpenPhish Community Feed         │ │  - Chromium/Edge automation         │
+│                                     │ │  - Hardened DNS mapping flags       │
+│  Layer 3: AI / ML Inference         │ │  - Process tree termination         │
+│  - URLBERT Tiny v4 Transformer      │ │                                     │
+│  - onnxruntime-node (CPU execution) │ │                                     │
+└───────────────────┬─────────────────┘ └──────────────────┬──────────────────┘
+                    │                                      │
+                    └──────────────────┬───────────────────┘
+                                       │
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        COMPOSITE RISK SCORING ENGINE                        │
+│             Final Score = min(100, max(0, round(H + TI + AI)))              │
+│       Classification: LOW RISK (0-20) | SUSPICIOUS (21-50)                  │
+│                       HIGH RISK (51-80) | MALICIOUS (81-100)                │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### End-to-End Data Flow
+
+1. **User Submission**: The client enters a URL via the React web interface.
+2. **Sanitization & Normalization**: The backend validates length ($\le 2048$ characters), strips HTML/script tags to prevent XSS, ensures the presence of an `http://` or `https://` protocol scheme, and parses the URL using the standard WHATWG URL parser.
+3. **Concurrent Detection**:
+   - `backend/ruleEngine/engine.js` runs 13 lexical and domain structural checks synchronously.
+   - `backend/threatIntel/intelProvider.js` queries VirusTotal (if configured) and OpenPhish concurrently via `Promise.all`.
+   - `backend/services/aiService.js` tokenizes the URL with an in-process WordPiece tokenizer and performs neural sequence inference using the URLBERT ONNX model.
+4. **Isolated Preview Dispatch**: In parallel, `backend/services/previewService.js` performs SSRF validation on the destination host, probes reachability via manual redirect following, and captures a sandboxed screenshot using headless Chromium or Edge.
+5. **Score Aggregation**: `backend/services/detectionService.js` aggregates the points, bounds the score strictly between 0 and 100, assigns the risk category, and compiles plain-English explanations.
+6. **Presentation**: The frontend renders the Executive Summary (verdict banner, animated gauge, reasons, recommendations, screenshot) and allows expanding into the Advanced Security Details.
+
+---
+
+## 5. Current Detection Layers & Components
 
 ### Layer 1: Heuristic Rule Engine (0–40 Points)
 
-Implemented in [`backend/ruleEngine/engine.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/ruleEngine/engine.js), the rule engine analyzes lexical structure, character distributions, domain-level attributes, and known phishing patterns across 13 deterministic rules.
+Implemented in [`backend/ruleEngine/engine.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/ruleEngine/engine.js), the rule engine evaluates 13 deterministic security checks.
 
-| Rule Key | Rule Name | Description & Detection Condition | Raw Points |
+| Rule Key | Rule Name | Detection Condition | Raw Points |
 | :--- | :--- | :--- | :---: |
-| `hasIpHost` | IP Hostname Risk | Hostname is an IPv4 or IPv6 literal (e.g. `http://192.168.1.1/login`) | +30 |
-| `lookalikeDomain` | Brand Typosquatting | Levenshtein distance ($1-2$) or character substitution against 17 protected brands (`google`, `paypal`, `microsoft`, `amazon`, `apple`, `facebook`, `instagram`, `netflix`, `linkedin`, `pinterest`, `github`, `twitter`, `binance`, `coinbase`, `steam`, `chase`, `wellsfargo`) on non-official domains | +25 |
-| `unicodeLookalikeDomain` | Homoglyph / IDN Spoofing | Domain contains Punycode prefix (`xn--`), non-ASCII characters, or Cyrillic/Greek homoglyphs | +25 |
-| `suspiciousTld` | High-Risk TLD | Domain uses known high-abuse TLD (`.xyz`, `.top`, `.club`, `.info`, `.work`, `.gq`, `.cf`, `.ml`, `.ga`, `.online`, `.site`, `.buzz`, `.icu`, `.tk`, `.monster`, `.fit`, `.kim`, `.racing`, `.surf`, `.cc`, `.space`, `.best`) | +20 |
-| `noHttps` | Protocol Security (HTTP) | Unencrypted plaintext HTTP protocol used | +15 |
-| `urlShortener` | URL Shortener Masking | Domain belongs to known shortening services (`bit.ly`, `tinyurl.com`, `t.co`, `goo.gl`, `is.gd`, `cutt.ly`, `rb.gy`, etc.) | +15 |
-| `excessiveSubdomains` | Subdomain Complexity | Subdomain hierarchy exceeds 3 levels | +15 |
-| `suspiciousKeywords` | Security Keywords | URL contains high-risk credential keywords (`login`, `signin`, `verify`, `account`, `secure`, `banking`, `password`, `wallet`, `checkpoint`, etc.) | +10 |
-| `excessiveHyphens` | Hyphenation Abuse | Hostname contains more than 2 hyphens | +10 |
-| `excessiveUrlLength` | Excessive URL Length | Total character count exceeds 75 characters | +10 |
-| `suspiciousSymbols` | Suspicious Symbols | URL contains embedded `@` signs, double slashes `//` in path, `~`, `$`, or `*` | +10 |
-| `excessiveNumbers` | Numeric Pattern Risk | Non-IP hostname contains more than 3 numeric digits | +10 |
-| `deepUrlPath` | Deep Directory Path | Directory path exceeds 3 nested segments | +10 |
+| `hasIpHost` | Direct IP Host Address | Hostname is an IPv4 or IPv6 address literal | +30 |
+| `lookalikeDomain` | Brand Typosquatting | Levenshtein distance ($1-2$) or character substitution against 17 protected brands (`Google`, `PayPal`, `Microsoft`, `Amazon`, `Apple`, `Facebook`, `Instagram`, `Netflix`, `LinkedIn`, `Pinterest`, `GitHub`, `Twitter`, `Binance`, `Coinbase`, `Steam`, `Chase`, `WellsFargo`) on non-official domains | +25 |
+| `unicodeLookalikeDomain` | Lookalike Character Deception | Hostname contains Punycode prefix (`xn--`), non-ASCII characters, or Cyrillic/Greek homoglyphs | +25 |
+| `suspiciousTld` | High-Risk Domain Extension | Domain uses a known high-abuse TLD (`.xyz`, `.top`, `.club`, `.info`, `.work`, `.gq`, `.cf`, `.ml`, `.ga`, `.online`, `.site`, `.buzz`, `.icu`, `.tk`, `.monster`, `.fit`, `.kim`, `.racing`, `.surf`, `.cc`, `.space`, `.best`) | +20 |
+| `noHttps` | Transport Encryption (HTTP) | Protocol is insecure plaintext HTTP | +15 |
+| `urlShortener` | URL Shortener Obfuscation | Domain belongs to a known URL shortener service (`bit.ly`, `tinyurl.com`, `t.co`, `goo.gl`, `is.gd`, `buff.ly`, `ow.ly`, `rb.gy`, `cutt.ly`, `shorturl.at`, etc.) | +15 |
+| `excessiveSubdomains` | Subdomain Nesting & Complexity | Subdomain hierarchy exceeds 3 levels | +15 |
+| `suspiciousKeywords` | Suspicious Security Keywords | Hostname or path contains sensitive authentication keywords (`login`, `signin`, `verify`, `verification`, `update`, `account`, `banking`, `secure`, `security`, `password`, `credential`, `wallet`, etc.) | +10 |
+| `excessiveHyphens` | Excessive Domain Hyphenation | Hostname contains more than 2 hyphens | +10 |
+| `excessiveUrlLength` | Abnormal URL Length | Total URL length exceeds 75 characters | +10 |
+| `suspiciousSymbols` | Suspicious URL Symbols | URL contains embedded `@` signs, double slashes `//` in path, `~`, `$`, or `*` | +10 |
+| `excessiveNumbers` | Suspicious Numeric Patterns | Non-IP hostname contains more than 3 numeric digits | +10 |
+| `deepUrlPath` | Deep Directory Path Structure | Directory path exceeds 3 nested segments | +10 |
 
+**Heuristic Component Formula**:
 $$\text{Heuristics}_{\text{pts}} = \min\left(40, \sum \text{Triggered Rule Points}\right)$$
 
 ---
 
 ### Layer 2: Threat Intelligence Feeds (-10 to 60 Points)
 
-Implemented in [`backend/threatIntel/intelProvider.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/threatIntel/intelProvider.js), PhishSense aggregates signals across three real-time threat intelligence sources:
+Implemented in [`backend/threatIntel/intelProvider.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/threatIntel/intelProvider.js), PhishSense aggregates signals across two live external intelligence feeds:
 
-1. **VirusTotal API v3** (`https://www.virustotal.com/api/v3/urls/{id}`):
-   - Uses URL-safe Base64 encoding without padding (RFC 4648).
-   - Multi-vendor consensus scoring:
-     - $\ge 5$ malicious vendors: **+60 points** (Maximum threat signal)
-     - $3 – 4$ malicious vendors: **+45 points**
-     - $2$ malicious vendors: **+30 points** (or **+15 points** if established domain with $\ge 20$ harmless vendors)
-     - $1$ malicious vendor: **+25 points** (or **+3 points** outlier flag if $\ge 20$ harmless vendors)
-     - Suspicious-only vendors: **+10 to +15 points** (or **+2 to +5 points** if established clean domain)
-     - Verified clean consensus ($\ge 20$ harmless, $0$ malicious, $0$ suspicious): **-10 points** (Clean reputation discount)
-2. **URLhaus API (abuse.ch)** (`https://urlhaus-api.abuse.ch/v1/url/`):
-   - Direct query against active malware/phishing repository.
-   - Malicious record found: **+30 points**.
-3. **OpenPhish Community Feed** (`https://openphish.com/feed.txt`):
-   - Active phishing feed downloaded and cached in memory for 5 minutes.
+1. **VirusTotal API v3**:
+   - URL is encoded into RFC 4648 Base64url format without padding.
+   - Evaluates multi-vendor consensus across up to 90+ security engines:
+     - $\ge 5$ malicious engines: **+60 points** (Maximum Threat Signal)
+     - $3 – 4$ malicious engines: **+45 points**
+     - $2$ malicious engines: **+30 points** (or **+15 points** if established domain with $\ge 20$ harmless engines)
+     - $1$ malicious engine: **+25 points** (or **+3 points** outlier flag if $\ge 20$ harmless engines)
+     - Suspicious-only engines: **+10 to +15 points** (or **+2 to +5 points** if established domain with $\ge 20$ harmless engines)
+     - Verified clean consensus ($\ge 20$ harmless, $0$ malicious, $0$ suspicious): **-10 points** (Clean Reputation Discount)
+2. **OpenPhish Community Feed**:
+   - Downloads the active phishing community feed (`https://openphish.com/feed.txt`).
+   - Caches entries in memory for 5 minutes (300,000 ms) to conserve bandwidth.
    - Matching active phishing URL: **+30 points**.
-4. **Google Safe Browsing**:
-   - Documented and structured as an architected interface (`status: 'FUTURE INTEGRATION'`).
 
+**Threat Intelligence Component Formula**:
 $$\text{ThreatIntel}_{\text{pts}} = \min\left(60, \max\left(-10, \text{Raw Intel Points}\right)\right)$$
 
 ---
 
 ### Layer 3: AI & Machine Learning Classification (0–30 Points)
 
-Implemented in [`backend/services/aiService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/aiService.js), PhishSense performs neural sequence classification directly in-process within Node.js using ONNX Runtime.
+Implemented in [`backend/services/aiService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/aiService.js), PhishSense executes in-process neural sequence inference using **URLBERT Tiny v4** via `onnxruntime-node`.
 
-* **Model Architecture**: **URLBERT Tiny v4** (8 Transformer layers, 8 attention heads, hidden dimension 192, intermediate dimension 768, max sequence length 64).
-* **Tokenizer**: Custom in-process WordPiece tokenizer parsing subwords against `ml/urlbert/tokenizer.json` (vocabulary size 400).
-* **Domain Calibration**: Applies authentic brand apex domain verification on recognized domains (e.g. `google.com`, `paypal.com`, `microsoft.com`) to prevent sequence transformer token-bias false positives on legitimate high-traffic brands.
+* **Model Family**: BERT Sequence Classifier (`BertForSequenceClassification`).
+* **Input**: Raw URL character sequence encoded via WordPiece tokenizer (max sequence length 64).
+* **Domain Calibration**: Authentic brand apex domains (e.g., `google.com`, `paypal.com`, `github.com`) are calibrated down ($P \le 0.05$) to eliminate token-bias false positives on legitimate high-traffic brands.
 * **AI Scoring Points**:
   - If $P(\text{phishing}) \ge 0.50$: $\text{AI}_{\text{pts}} = \min(30, \max(0, \text{round}(P(\text{phishing}) \times 30)))$
   - If $P(\text{phishing}) < 0.50$: $\text{AI}_{\text{pts}} = 0$
@@ -187,20 +256,34 @@ $$\text{AI}_{\text{pts}} \in [0, 30]$$
 
 ---
 
-### Layer 4: Isolated Preview & SSRF Defense Boundary
+### Layer 4: Isolated Website Preview & Reachability Probing
 
-Implemented in [`backend/services/previewService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/previewService.js) and [`backend/utils/ssrfValidator.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/utils/ssrfValidator.js):
+Implemented in [`backend/services/previewService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/previewService.js), PhishSense safely probes destination reachability and captures a visual screenshot:
 
-* **SSRF Protection**: Resolves all DNS `A` and `AAAA` records and rejects any private IPv4 ranges (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`, `169.254.169.254`, `100.64.0.0/10`), private IPv6 (`::1`, `fc00::/7`, `fe80::/10`), multicast, or cloud metadata hostnames (`metadata.google.internal`, `instance-data`).
-* **Manual Redirect Handling**: Enforces manual redirect following with SSRF validation re-executed at every hop (capped at 3 hops).
-* **Headless Screenshot Sandbox**: Renders an isolated PNG snapshot using local Chrome/Edge with hardened flags (`--headless`, `--no-sandbox`, `--disable-gpu`, `--deny-permission-prompts`, `--virtual-time-budget=4000`, `--host-resolver-rules=MAP 127.0.0.1 ~NOTFOUND, MAP localhost ~NOTFOUND, MAP 169.254.169.254 ~NOTFOUND`).
-* **Process Isolation**: Guarantees termination of child processes and browser trees (`taskkill` / `SIGKILL`) with a strict 15-second timeout.
+* **Manual Redirect Navigation**: Follows HTTP redirects manually up to 3 hops, re-running SSRF checks at every hop.
+* **Timeout Protection**: 5-second probe timeout.
+* **Bot-Protection Detection**: Identifies automated-challenge interstitial pages (Cloudflare, DDoS-Guard, etc.).
+* **Headless Browser Sandbox**: Automates local Chromium or Edge using restricted flags (`--headless`, `--no-sandbox`, `--disable-dev-shm-usage`, `--deny-permission-prompts`, `--virtual-time-budget=4000`, `--hide-scrollbars`, `--window-size=1280,720`).
+* **Process Cleanup**: Enforces termination of child processes (`taskkill /F /T /PID` on Windows or `SIGKILL` on POSIX) with a strict 15-second timeout.
 
 ---
 
-### Layer 5: Composite Risk Scoring Formula & Ranges
+### Layer 5: Server-Side Request Forgery (SSRF) Defense Boundary
 
-The final platform risk score aggregates all three detection layers into a strictly bounded 0–100 integer:
+Implemented in [`backend/utils/ssrfValidator.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/utils/ssrfValidator.js):
+
+* Enforces protocol restriction: only `http:` and `https:` schemes are permitted.
+* Rejects embedded credentials in URLs (`user:pass@host`).
+* Rejects explicit forbidden hostnames (`localhost`, `metadata.google.internal`, `instance-data`, etc.).
+* Resolves all DNS `A` and `AAAA` records and validates each IP address against private, loopback, link-local, carrier-grade NAT, and cloud metadata ranges.
+* Enforces browser-level DNS blacklisting via Chrome flag:
+  `--host-resolver-rules=MAP 127.0.0.1 ~NOTFOUND, MAP localhost ~NOTFOUND, MAP 169.254.169.254 ~NOTFOUND, MAP 0.0.0.0 ~NOTFOUND, MAP [::1] ~NOTFOUND`.
+
+---
+
+### Layer 6: Composite Risk Scoring & Classification Ranges
+
+Implemented in [`backend/services/detectionService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/detectionService.js), the platform risk score combines all three detection components into a strictly bounded integer between 0 and 100:
 
 $$\text{Final Risk Score} = \min\left(100, \max\left(0, \text{round}\left(\text{Heuristics}_{\text{pts}} + \text{ThreatIntel}_{\text{pts}} + \text{AI}_{\text{pts}}\right)\right)\right)$$
 
@@ -212,93 +295,234 @@ $$\text{Final Risk Score} = \min\left(100, \max\left(0, \text{round}\left(\text{
 ├──────────────┼──────────────────┼────────────────────────────────────────────┤
 │ 81 – 100     │ MALICIOUS        │ DANGEROUS: Do not visit, do not enter info │
 │ 51 – 80      │ HIGH RISK        │ HIGH RISK: Multiple phishing signs detected│
-│ 21 – 50      │ SUSPICIOUS / MED │ WARNING: Unverified link or anomalies      │
+│ 21 – 50      │ SUSPICIOUS       │ WARNING: Unverified link or anomalies      │
 │ 0 – 20       │ LOW RISK (SAFE)  │ SAFE: No significant warning signs found   │
 └──────────────┴──────────────────┴────────────────────────────────────────────┘
 ```
 
 ---
 
-### Layer 6: Explainability Architecture
+## 6. Explainability & Human-Centered Interface
 
-PhishSense rejects opaque "black-box" outputs:
-1. **Executive Summary**: Displays a clear verdict badge, animated risk gauge, plain-English finding ("*This website appears to be pretending to be PayPal*"), actionable guidance, and an isolated screenshot preview.
-2. **Advanced Technical Details**: Includes tabbed forensic views:
-   - **AI Pattern Check**: Model prediction, sequence confidence percentage, token analysis finding.
-   - **Domain & Structure**: Interactive 13-rule checklist with pass/fail/detected status.
-   - **Threat Feeds**: VirusTotal vendor detection ratios, OpenPhish match status.
-   - **Network Protocols**: TLS encryption status, SSRF defense status, public destination verification.
-   - **Risk Calculation**: Step-by-step mathematical breakdown showing exact point contributions ($\text{Heuristics} + \text{Intel} + \text{AI} = \text{Score}$).
-   - **Reachability**: HTTP status code, latency (ms), content type, and server response.
+PhishSense adheres to the principles of **Explainable Artificial Intelligence (XAI)** by structuring analysis results into two complementary views:
 
----
+### 1. Executive Summary (Everyday Browsing Guidance)
+* **Verdict Banner**: Color-coded risk status (`LOW RISK`, `SUSPICIOUS`, `HIGH RISK`, `MALICIOUS`).
+* **Animated Risk Gauge**: Smooth SVG gauge visualizing the 0–100 score.
+* **Why We Flagged It**: Plain-English explanations describing exactly which patterns triggered risk (e.g., "*Possible PayPal impersonation detected. Domain differs from legitimate brand domain (paypal.com)*", "*AI detected strong phishing patterns (100% pattern match)*").
+* **What Should You Do?**: Actionable security recommendations tailored to the risk tier.
+* **Isolated Preview Status**: Indicators showing whether the website is reachable, rendered, bot-protected, or blocked by SSRF defense.
 
-## Machine Learning Subsystem
-
-### Production Runtime Model (URLBERT v4 ONNX)
-
-* **Deployment Target**: `backend/services/aiService.js` loads `ml/urlbert/model.onnx` and `ml/urlbert/tokenizer.json`.
-* **Execution Engine**: `onnxruntime-node` on CPU.
-* **Architecture**: BERT sequence classifier (`BertForSequenceClassification`):
-  - Hidden Layers: 8
-  - Attention Heads: 8
-  - Hidden Embedding Size: 192
-  - Intermediate Feedforward Size: 768
-  - Max Sequence Length: 64 tokens
-  - Vocabulary Size: 400 WordPiece subwords
-* **Inference Latency**: Typically $10 – 20\text{ ms}$ on commodity hardware.
-
-### Research & Feature Engineering Baseline (Random Forest)
-
-Implemented in `ml/` for tabular benchmarking and comparative research:
-
-* **Feature Extractor** ([`ml/feature_extractor.py`](file:///C:/Users/ADMIN/Desktop/PhishSense/ml/feature_extractor.py)): Extracts 29 handcrafted features from raw URL strings:
-  1. *Lexical (13)*: `url_length`, `hostname_length`, `path_length`, `dots_count`, `hyphens_count`, `underscores_count`, `slashes_count`, `special_chars_count`, `digits_count`, `digit_ratio`, `query_params_count`, `fragments_count`, `subdomains_count`.
-  2. *Security & Protocol (14)*: `has_https`, `has_http`, `has_ip_host`, `suspicious_tld`, `url_shortener`, `excessive_subdomains`, `keyword_login`, `keyword_secure`, `keyword_verify`, `keyword_account`, `keyword_update`, `keyword_password`, `keyword_payment`, `suspicious_keywords_count`.
-  3. *Domain Impersonation (2)*: `brand_similarity_detected` (Levenshtein typosquatting), `homoglyph_idn_indicator` (Punycode/non-ASCII).
-* **Model** ([`ml/train_model.py`](file:///C:/Users/ADMIN/Desktop/PhishSense/ml/train_model.py)): 25-tree Random Forest Classifier (max depth 8) trained with zero native C-extension dependencies for 100% portability.
-* **Serialized Outputs**: `ml/model/phish_model.json` (tree nodes) and `ml/model/feature_names.json` (feature metadata).
-
-### Benchmark Dataset Specifications
-
-* **Dataset Name**: PhishSense Cybersecurity URL Benchmark Dataset (v1.0) ([`ml/dataset/DATASET_INFO.md`](file:///C:/Users/ADMIN/Desktop/PhishSense/ml/dataset/DATASET_INFO.md))
-* **Total Samples**: 1,200 labeled URLs
-  - **Benign Class (`0`)**: 600 URLs (Tranco Top 1M, Wikipedia, Google, GitHub, Microsoft, Apple, AWS)
-  - **Phishing Class (`1`)**: 600 URLs (PhishTank, OpenPhish, URLhaus verified threat feeds)
-* **Train/Test Split**: Stratified 80/20 split (960 Training / 240 Testing; seed 42)
-* **Evaluation Metrics on Test Set (240 unseen samples: 120 Benign, 120 Phishing)**:
-  - **Accuracy**: $100.00\%$
-  - **Precision**: $100.00\%$
-  - **Recall**: $100.00\%$
-  - **F1-Score**: $1.000$
-  - **ROC-AUC**: $0.9958$
-  - **Confusion Matrix**: $\text{TN} = 120, \text{FP} = 0, \text{FN} = 0, \text{TP} = 120$
-
-### Fail-Safe AI Execution
-
-If the ONNX model files are missing, corrupted, or the runtime encounters an exception, `aiService.js` catches the error, logs a warning, and returns `{ available: false, status: 'TEMPORARILY UNAVAILABLE', probability: 0.0 }`. The core detection pipeline **never crashes** and continues operating using static heuristics and threat intelligence.
+### 2. Advanced Security Details (Technical Forensics)
+Accessible via the "View Security Details" button, this section provides 6 tabbed inspection views:
+1. **AI Pattern Check**: URLBERT prediction category, sequence confidence percentage, token analysis finding, and exact AI point contribution (+0 to +30 pts).
+2. **Domain & Structure**: Interactive checklist of all 13 heuristic rules with status badges (`Passed`, `Detected`, `Warning`), points, and expandable forensic descriptions.
+3. **Threat Feeds**: Live status cards for VirusTotal (vendor detection ratio, individual flagged vendor names, outlier analysis) and OpenPhish (feed match indicator).
+4. **Network Protocols**: Transport TLS encryption status, SSRF defense boundary verification, and public destination confirmation.
+5. **Risk Calculation**: Complete mathematical equation displaying exact component contributions ($\text{Heuristics} + \text{Threat Intel} + \text{AI} = \text{Composite Score}$).
+6. **Website Reachability**: HTTP status code, server response latency (ms), content type, and extracted page title.
 
 ---
 
-## Threat Intelligence Integrations
+## 7. Threat Intelligence Providers Implemented
 
-| Provider | Integration Type | Endpoint / Protocol | Point Range | Status |
-| :--- | :--- | :--- | :---: | :---: |
-| **VirusTotal** | REST API v3 (JSON) | `https://www.virustotal.com/api/v3/urls/{id}` | -10 to +60 | Active (Key Configured) |
-| **URLhaus** | REST API (POST) | `https://urlhaus-api.abuse.ch/v1/url/` | 0 or +30 | Active (Key Configured) |
-| **OpenPhish** | HTTP Text Feed | `https://openphish.com/feed.txt` | 0 or +30 | Active (5-min In-Memory Cache) |
-| **Google Safe Browsing** | REST API | Interface Placeholder | 0 or +40 | Future Integration |
+| Provider | Type | Endpoint / Feed | Scoring Range | Requirement |
+| :--- | :--- | :--- | :---: | :--- |
+| **VirusTotal** | REST API v3 | `https://www.virustotal.com/api/v3/urls/{id}` | -10 to +60 pts | Optional API key (`VIRUSTOTAL_API_KEY`) |
+| **OpenPhish** | HTTP Text Feed | `https://openphish.com/feed.txt` | 0 or +30 pts | Free community feed (No key required; 5-minute memory cache) |
+
+> [!NOTE]
+> * **URLhaus** and **Google Safe Browsing** are not active components in the current implementation.
+> * If the `VIRUSTOTAL_API_KEY` is not provided in `.env`, the backend logs an informational note and continues operating in heuristic and AI detection mode without failure.
 
 ---
 
-## Project Structure
+## 8. AI / Machine Learning Subsystem (URLBERT)
+
+### Model Architecture & Specifications
+
+PhishSense utilizes **URLBERT Tiny v4**, a deep bidirectional transformer model trained to evaluate lexical and structural subwords within URLs.
+
+* **Architecture**: `BertForSequenceClassification` (BERT)
+* **Transformer Layers (`num_hidden_layers`)**: 8
+* **Attention Heads (`num_attention_heads`)**: 8
+* **Hidden Dimension (`hidden_size`)**: 192
+* **Intermediate Feedforward Dimension (`intermediate_size`)**: 768
+* **Max Position Embeddings (`max_position_embeddings`)**: 64 tokens
+* **Vocabulary Size (`vocab_size`)**: 400 WordPiece subwords
+* **Hidden Activation**: GELU
+* **Artifact Files** (located in `ml/urlbert/`):
+  - `model.onnx`: Computation graph and model topology
+  - `model.onnx.data`: Model tensor weight buffers
+  - `tokenizer.json`: WordPiece vocabulary and token ID mappings
+  - `config.json`: Model hyperparameters and layer definitions
+  - `tokenizer_config.json`: Pre-tokenization and truncation settings
+
+### In-Process ONNX Runtime Integration
+
+Inference is executed directly inside the Node.js backend process via `onnxruntime-node` (v1.27.0). This design eliminates the latency, process overhead, and operational complexity of running a separate external Python daemon for real-time web requests.
+
+* **Execution Provider**: CPU
+* **Session Management**: Singleton session initialized and warmed up during server startup.
+* **Inference Latency**: Typically sub-25 ms on commodity CPUs.
+
+### Custom WordPiece Tokenizer
+
+The backend implements an in-process JavaScript tokenizer (`UrlBertTokenizer` in [`backend/services/aiService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/aiService.js)):
+1. **Pre-tokenization**: Lowercases the URL string and isolates ASCII punctuation as individual tokens while preserving alphanumeric sequences.
+2. **WordPiece Subword Encoding**: Applies greedy longest-match subword lookup using `##` continuation prefixes against the 400-token vocabulary.
+3. **Tensor Formatting**: Generates 64-element `input_ids`, `attention_mask`, and `token_type_ids` vectors as `BigInt64Array` tensors, bounded with `[CLS]` and `[SEP]` markers.
+
+### Domain-Context Calibration
+
+Pure sequence transformers can exhibit token-bias false positives on legitimate brand names (such as `google`, `paypal`, or `microsoft`) because these tokens appear frequently in phishing training datasets. To prevent false alarms on authentic brand homepages:
+
+* The service verifies whether the URL belongs to an authentic, recognized apex domain (`isAuthenticBrandApexDomain`).
+* If verified as the genuine apex domain (and not a typosquat or subdomain masquerade), the phishing probability is calibrated to a safe baseline ($P \le 0.05$).
+
+### Softmax & Scoring Formulation
+
+The model outputs raw 2-class logits $[z_0, z_1]$. The phishing probability $P(\text{phishing})$ is derived using numerically stable Softmax:
+
+$$m = \max(z_0, z_1), \quad P(\text{phishing}) = \frac{e^{z_1 - m}}{e^{z_0 - m} + e^{z_1 - m}}$$
+
+The probability maps to the risk scoring engine as follows:
+* If $P(\text{phishing}) \ge 0.50$:
+  $$\text{AI}_{\text{pts}} = \min(30, \max(0, \text{round}(P(\text{phishing}) \times 30)))$$
+* If $P(\text{phishing}) < 0.50$:
+  $$\text{AI}_{\text{pts}} = 0$$
+
+### Fail-Safe Error Boundary
+
+If the ONNX model files are unreadable or an execution error occurs, `aiService.js` catches the exception and returns:
+```json
+{
+  "available": false,
+  "status": "TEMPORARILY UNAVAILABLE",
+  "prediction": "UNAVAILABLE",
+  "probability": 0.0,
+  "confidence": 0
+}
+```
+The core detection pipeline **never throws an unhandled error** and continues scoring the URL using heuristics and threat intelligence.
+
+---
+
+## 9. Website Preview & Network Security Probing
+
+Implemented in [`backend/services/previewService.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/services/previewService.js), PhishSense includes a sandboxed website preview capability:
+
+```text
+Target URL
+    │
+    ▼
+[ SSRF Validator ] ──(Fails)──▶ Returns BLOCKED / UNSAFE_DESTINATION (No connection made)
+    │ (Passes)
+    ▼
+[ Manual Redirect Follower ] ──▶ Re-checks SSRF on every hop (Max 3 hops)
+    │
+    ▼
+[ Bot Protection Check ] ────▶ Detects Cloudflare / DDoS-Guard challenge pages
+    │ (Clean)
+    ▼
+[ Headless Browser Sandbox ] ──▶ Isolated Chromium/Edge process with DNS restriction flags
+    │
+    ▼
+Base64 PNG Screenshot returned to client
+```
+
+### Preview Status Categories
+
+1. **Live preview available** (`Emerald`): The target website is reachable, passed SSRF checks, and an isolated screenshot was captured.
+2. **Website is reachable** (`Slate`): The target web server responded with valid HTTP headers, but visual rendering was unavailable or blocked by bot verification challenges.
+3. **Preview blocked** (`Amber`): The target URL resolved to a private, loopback, or cloud metadata address and was blocked by SSRF defense before any outbound connection was initiated.
+4. **Website unreachable** (`Slate`): The target server refused connection, timed out, or the domain could not be resolved in DNS.
+
+---
+
+## 10. SSRF Protection Architecture
+
+Implemented in [`backend/utils/ssrfValidator.js`](file:///C:/Users/ADMIN/Desktop/PhishSense/backend/utils/ssrfValidator.js), the SSRF defense module protects internal infrastructure from server-side request forgery:
+
+1. **Scheme Validation**: Strictly restricts URLs to `http:` and `https:`.
+2. **Embedded Credential Check**: Blocks URLs containing `username` or `password` fields (`http://user:pass@host`).
+3. **Explicit Hostname Blacklist**: Rejects `localhost`, `localhost.localdomain`, `local`, `broadcasthost`, `metadata.google.internal`, `metadata.google`, and `instance-data`.
+4. **Comprehensive DNS Resolution**: Resolves target hostnames to all IPv4 (`A`) and IPv6 (`AAAA`) records using `dns.lookup(hostname, { all: true })`.
+5. **Private IP Range Enforcement**:
+   - **IPv4 Ranges Rejected**:
+     - `0.0.0.0/8` (Current network)
+     - `10.0.0.0/8` (Private Class A)
+     - `100.64.0.0/10` (Carrier-grade NAT)
+     - `127.0.0.0/8` (Loopback addresses)
+     - `169.254.0.0/16` (Link-Local & Cloud Metadata `169.254.169.254`)
+     - `172.16.0.0/12` (Private Class B)
+     - `192.0.0.0/24`, `192.0.2.0/24` (TEST-NET-1)
+     - `192.168.0.0/16` (Private Class C)
+     - `198.18.0.0/15` (Benchmark testing)
+     - `198.51.100.0/24` (TEST-NET-2), `203.0.113.0/24` (TEST-NET-3)
+     - `224.0.0.0/4` (Multicast), `240.0.0.0/4` (Reserved)
+     - `255.255.255.255` (Limited broadcast)
+   - **IPv6 Ranges Rejected**:
+     - `::1` (Loopback)
+     - `::` (Unspecified)
+     - `::ffff:0:0/96` (IPv4-mapped private addresses)
+     - `fc00::/7` (Unique Local Addresses)
+     - `fe80::/10` (Link-Local Unicast)
+     - `ff00::/8` (Multicast)
+     - `100::/64` (Discard prefix), `2001:db8::/32` (Documentation prefix)
+6. **Sub-Resource DNS Isolation**: Headless Chromium is started with `--host-resolver-rules="MAP 127.0.0.1 ~NOTFOUND, MAP localhost ~NOTFOUND, MAP 169.254.169.254 ~NOTFOUND, MAP 0.0.0.0 ~NOTFOUND, MAP [::1] ~NOTFOUND"` to prevent web page sub-resources or scripts from accessing internal endpoints.
+
+---
+
+## 11. Technology Stack
+
+### Frontend Technology
+
+* **Core Framework**: React 18 (`react` 18.3.1, `react-dom` 18.3.1)
+* **Build System & Dev Server**: Vite 5 (`vite` 5.3.1)
+* **Styling**: Tailwind CSS (`tailwindcss` 3.4.19, `postcss` 8.5.15, `autoprefixer` 10.5.2)
+* **Animation & Transitions**: GSAP (`gsap` 3.15.0) for score counters, gauge animations, and accordion reveals
+* **Typography & Icons**: Inter / Outfit fonts, Google Material Symbols Outlined
+* **State & Features**:
+  - Light and Dark UI theme modes with persistent user preference
+  - Guest scan limit (3 free scans) with `localStorage` fallback
+  - Registered user session with persistent scan history synchronization
+  - Responsive layout optimized for desktop, tablet, and mobile browsers
+
+### Backend Technology
+
+* **Runtime**: Node.js (v18.0.0 or higher recommended)
+* **Web Framework**: Express.js (`express` 4.19.2)
+* **Security & Middleware**:
+  - Security HTTP headers (CSP, HSTS, X-Frame-Options: DENY, X-Content-Type-Options: nosniff, X-XSS-Protection)
+  - Custom in-memory rate limiting (60 requests per minute per IP with periodic memory cleanup)
+  - Strict CORS origin validation (`cors` 2.8.5)
+* **Logging**: Structured logging using Winston (`winston` 3.13.0)
+* **Configuration**: `dotenv` (16.4.5)
+* **Email Delivery**: Nodemailer (`nodemailer` 9.0.5) supporting SMTP (Gmail App Passwords or custom mail servers) with fallback to ephemeral Ethereal test accounts during development
+* **Persistence**: Local JSON flat-file storage (`backend/data/users.json` and `backend/data/history.json`)
+* **Cryptography & Authentication**:
+  - Passwords hashed using PBKDF2 with SHA-512 (100,000 iterations, 16-byte cryptographically secure random salt)
+  - Minimum 12-character password policy with common password blacklist validation
+  - 6-digit numeric OTP generation with SHA-256 hash storage and constant-time verification (`crypto.timingSafeEqual`)
+  - HMAC-SHA256 session token generation and authentication middleware
+
+### Machine Learning Technology
+
+* **Active Runtime Model**: **URLBERT Tiny v4**
+* **Inference Framework**: ONNX Runtime Node.js binding (`onnxruntime-node` 1.27.0)
+* **Target Hardware**: CPU inference
+* **Tokenizer**: Custom JavaScript WordPiece implementation parsing vocabulary from `ml/urlbert/tokenizer.json`
+
+---
+
+## 12. Project Folder Structure
 
 ```text
 PhishSense/
-├── AI_IMPLEMENTATION_REPORT.md   # Comprehensive technical report on AI/ML subsystem
 ├── AI_TEST_RESULTS.md            # Empirical test suite results with score breakdowns
+├── PHISHSENSE_Doc.pdf            # Academic project documentation PDF
 ├── README.md                     # Primary system architecture & operational documentation
-├── STUDENT_DETAILS.txt           # Academic submission metadata
 ├── backend/                      # Node.js / Express backend service
 │   ├── config/
 │   │   └── config.js             # Central configuration loader
@@ -311,7 +535,7 @@ PhishSense/
 │   │   ├── history.json          # Persistent scan history JSON database
 │   │   └── users.json            # Persistent user accounts JSON database
 │   ├── middleware/
-│   │   └── authMiddleware.js     # JWT extraction and optional/required auth guards
+│   │   └── authMiddleware.js     # Session token extraction and route guards
 │   ├── routes/
 │   │   ├── authRoutes.js         # Authentication routes (/api/v1/auth)
 │   │   ├── historyRoutes.js      # Scan history routes (/api/v1/history)
@@ -333,16 +557,14 @@ PhishSense/
 │   │   ├── previewService.js     # Headless browser preview and screenshot capture
 │   │   └── userService.js        # User authentication, OTP hashing, and credential logic
 │   ├── threatIntel/
-│   │   └── intelProvider.js      # Connectors for VirusTotal, URLhaus, and OpenPhish
+│   │   └── intelProvider.js      # Connectors for VirusTotal and OpenPhish
 │   ├── utils/
-│   │   ├── authUtils.js          # Password hashing (PBKDF2/SHA256), tokens, OTP generator
+│   │   ├── authUtils.js          # Password hashing (PBKDF2/SHA-512), tokens, OTP generator
 │   │   ├── logger.js             # Structured Winston logging utility
 │   │   └── ssrfValidator.js      # RFC-compliant SSRF defense validator and IP resolver
 │   ├── .env.example              # Environment variables template (no secrets)
 │   ├── package.json              # Backend dependencies and run scripts
 │   └── server.js                 # Express application entry point & HTTP server
-├── docs/
-│   └── architecture.md           # Mermaid sequence diagrams and design notes
 ├── frontend/                     # React 18 / Vite frontend application
 │   ├── public/
 │   │   ├── phishsense_icon.png   # PhishSense application icon
@@ -371,108 +593,78 @@ PhishSense/
 │   ├── postcss.config.js         # PostCSS configuration for Tailwind
 │   ├── tailwind.config.js        # Tailwind CSS theme configuration
 │   └── vite.config.js            # Vite build configuration
-└── ml/                           # Machine Learning module & Python assets
+└── ml/                           # Machine Learning assets & evaluation utilities
     ├── dataset/
+    │   ├── DATASET_INFO.md       # Dataset metadata and benchmark documentation
     │   ├── build_dataset.py      # Benchmark dataset generator script
-    │   ├── DATASET_INFO.md       # Dataset metadata and distribution documentation
-    │   └── phishing_urls.csv     # 1,200 labeled URL benchmark dataset
-    ├── model/
-    │   ├── feature_names.json    # Saved 29 feature list and Random Forest metrics
-    │   └── phish_model.json      # Serialized Random Forest decision tree weights
+    │   └── phishing_urls.csv     # Labeled URL benchmark dataset
     ├── urlbert/
     │   ├── config.json           # URLBERT v4 model architecture configuration
     │   ├── model.onnx            # Serialized ONNX Transformer model weights
     │   ├── model.onnx.data       # ONNX tensor binary weights
     │   ├── tokenizer.json        # WordPiece vocabulary (400 subword tokens)
     │   └── tokenizer_config.json # Tokenizer parameters
-    ├── evaluate_model.py         # Independent evaluation script for Random Forest
-    ├── feature_extractor.py      # 29-feature extractor & explainability indicator builder
-    ├── predict.py                # Standalone CLI prediction interface
     ├── README.md                 # ML subsystem documentation
     ├── run_test_suite.py         # Test suite runner executing backend detection tests
-    ├── test_auth_flow.js         # Auth layer unit test script
-    └── train_model.py            # Reproducible 80/20 train/test training pipeline
+    └── test_auth_flow.js         # Auth layer unit test script
 ```
 
 ---
 
-## Installation & Local Setup
+## 13. Installation & Setup Instructions
 
 ### Prerequisites
 
 * **Node.js**: v18.0.0 or higher
 * **npm**: v9.0.0 or higher
-* **Python**: v3.8 or higher (optional, only required if retraining the Random Forest model)
-* **Google Chrome or Microsoft Edge**: (optional, detected automatically for isolated website screenshots)
+* **Google Chrome or Microsoft Edge**: (Optional; automatically detected for headless website screenshot rendering)
+* **Python**: v3.8 or higher (Optional; only needed if running benchmark test scripts in `ml/`)
 
 ---
 
-### 1. Backend Setup
+### Backend Setup
 
 ```bash
-# Navigate to the backend directory
+# 1. Navigate to the backend directory
 cd backend
 
-# Install dependencies (Express, onnxruntime-node, nodemailer, winston, cors, dotenv)
+# 2. Install dependencies (Express, onnxruntime-node, nodemailer, winston, cors, dotenv)
 npm install
 
-# Create local environment configuration
+# 3. Create local environment configuration from template
 cp .env.example .env
 
-# Start backend server in development mode
+# 4. Start the backend in development mode (using nodemon)
 npm run dev
 
 # Or start in standard production mode
 npm start
 ```
 
-The backend service will start on `http://localhost:5000`.
+The backend service will listen on `http://localhost:5000`. On boot, it automatically initializes and warms up the URLBERT ONNX inference session.
 
 ---
 
-### 2. Frontend Setup
+### Frontend Setup
 
 ```bash
-# In a new terminal window, navigate to the frontend directory
+# 1. Open a new terminal and navigate to the frontend directory
 cd frontend
 
-# Install frontend dependencies (React 18, Vite, Tailwind CSS, GSAP)
+# 2. Install dependencies (React 18, Vite, Tailwind CSS, GSAP)
 npm install
 
-# Start Vite development server
+# 3. Start the Vite development server
 npm run dev
 ```
 
-Open your browser at `http://localhost:5173`.
+Open your browser and navigate to `http://localhost:5173`.
 
 ---
 
-### 3. Machine Learning Setup (Optional Training/Evaluation)
+## 14. Environment Variables Configuration
 
-To retrain the Random Forest baseline model or evaluate metrics:
-
-```bash
-# Navigate to the ml directory
-cd ml
-
-# (Optional) Rebuild the 1,200-sample benchmark dataset
-python dataset/build_dataset.py
-
-# Train the Random Forest classifier
-python train_model.py
-
-# Evaluate model metrics and display confusion matrix
-python evaluate_model.py
-
-# Test CLI prediction on a URL
-python predict.py "https://accounts-google-verify.com/login"
-```
-
----
-
-### Environment Variables Configuration
-
-Create a `.env` file in the `backend/` directory based on `.env.example`:
+Environment configuration is managed via `.env` in the `backend/` directory, structured using `backend/.env.example`:
 
 ```ini
 # Server Configuration
@@ -481,35 +673,111 @@ NODE_ENV=development
 LOG_LEVEL=info
 
 # Threat Intelligence API Keys (Optional)
-VIRUSTOTAL_API_KEY=your_virustotal_api_key_here
-URLHAUS_API_KEY=your_urlhaus_api_key_here
-GOOGLE_SAFE_BROWSING_API_KEY=your_safe_browsing_key_here
+# Enter your free VirusTotal API key to enable multi-vendor reputation lookups.
+# If omitted or left blank, PhishSense continues running in heuristic & AI mode.
+VIRUSTOTAL_API_KEY=your_virustotal_key_here
 
-# SMTP Email Delivery Configuration (Optional - for real email verification codes)
+# Real Email Delivery Configuration (SMTP) - Optional
+# By default in development, PhishSense automatically provisions an ephemeral
+# Ethereal test inbox and prints email preview links to the console.
+# To deliver real verification codes to user inboxes, configure SMTP credentials:
+
+# Option A: Gmail SMTP (Requires a 16-character Google App Password)
 # SMTP_HOST=smtp.gmail.com
 # SMTP_PORT=587
-# SMTP_USER=your_email@gmail.com
-# SMTP_PASS=your_16_char_google_app_password
-# SMTP_FROM="PhishSense Security" <your_email@gmail.com>
-```
+# SMTP_USER=your_address@gmail.com
+# SMTP_PASS=your_16_char_app_password
+# SMTP_FROM="PhishSense Security" <your_address@gmail.com>
 
-> [!NOTE]
-> If external SMTP credentials are not configured, the backend automatically provisions an ephemeral Ethereal test mailbox during development and logs the preview link to the terminal.
+# Option B: Custom / Transactional SMTP (SendGrid, Mailgun, Brevo, Resend, etc.)
+# SMTP_HOST=smtp.resend.com
+# SMTP_PORT=587
+# SMTP_USER=resend
+# SMTP_PASS=re_your_api_key
+# SMTP_FROM="PhishSense" <security@yourverifieddomain.com>
+```
 
 ---
 
-## API Endpoints Reference
+## 15. Running the Application
 
-### Phishing Detection & Preview
+1. **Start the Backend**:
+   ```bash
+   cd backend
+   npm run dev
+   ```
+   *Terminal will log: `PhishSense backend service running on port 5000` and `URLBERT v4 ONNX Model loaded and warmed up successfully.`*
+
+2. **Start the Frontend**:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   *Terminal will display the local Vite URL (e.g. `http://localhost:5173`).*
+
+3. **In-Process ML Execution**:
+   * No separate Python server or daemon is required to run the ML model.
+   * When requests are submitted to `/api/v1/phish/analyze`, `backend/services/aiService.js` performs tokenization and ONNX inference directly inside the Node.js event loop.
+
+---
+
+## 16. Testing & Verification Instructions
+
+The codebase includes verification and audit scripts:
+
+### 1. Comprehensive Backend Audit Suite
+Evaluates detection pipeline benchmarks, threat intelligence consensus math, and all 5 preview reachability/SSRF states:
+```bash
+cd backend
+node scripts/auditSuite.js
+```
+
+### 2. Website Preview & SSRF Verification
+Validates that private addresses (such as `127.0.0.1` and `169.254.169.254`) are blocked and verifies headless screenshot capture on public websites:
+```bash
+cd backend
+node scripts/verifyPreview.js
+```
+
+### 3. Secret Leak Scanner
+Scans the project directory for accidentally hardcoded credentials or API tokens before committing:
+```bash
+cd backend
+node scripts/scanSecrets.js
+```
+
+### 4. SMTP Email Delivery Diagnostic
+Validates SMTP configuration and dispatches a test verification code email:
+```bash
+cd backend
+node scripts/testEmailDelivery.js your_email@example.com
+```
+
+### 5. Multi-URL Benchmark Test Runner
+Runs the detection engine against benchmark URLs across legitimate, typosquatting, suspicious structure, and obfuscation categories:
+```bash
+python ml/run_test_suite.py
+```
+
+### 6. Authentication Flow Simulation
+Tests guest scan limit decrementing, 3-scan threshold, and registration unlock:
+```bash
+node ml/test_auth_flow.js
+```
+
+---
+
+## 17. API Endpoints Reference
+
+### Phishing Detection & Preview Endpoints
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/v1/phish/analyze` | Analyzes target URL across heuristics, threat intel, and AI | No |
+| `POST` | `/api/v1/phish/analyze` | Analyzes target URL across heuristics, threat intel, and URLBERT | No |
 | `POST` | `/api/v1/preview` | Generates safe website preview and reachability telemetry | No |
 | `GET` | `/health` | Server health check endpoint | No |
 
 #### Example Request (`POST /api/v1/phish/analyze`)
-
 ```json
 {
   "url": "https://accounts-google-verify.com/login"
@@ -517,17 +785,20 @@ GOOGLE_SAFE_BROWSING_API_KEY=your_safe_browsing_key_here
 ```
 
 #### Example Response (Truncated)
-
 ```json
 {
   "url": "https://accounts-google-verify.com/login",
-  "timestamp": "2026-08-31T19:00:00.000Z",
+  "timestamp": "2026-09-06T01:12:10.000Z",
   "score": 65,
   "classification": "HIGH RISK",
   "reasons": [
     "Possible Google impersonation detected. Domain differs from legitimate brand domain (google.com).",
-    "Suspicious keyword detected: login, verify",
+    "Suspicious keyword detected: accounts, verify, login",
     "AI detected strong phishing patterns (100% pattern match)."
+  ],
+  "securityEvidence": [
+    "Possible Google impersonation detected. Domain differs from legitimate brand domain (google.com).",
+    "Suspicious keyword detected: accounts, verify, login"
   ],
   "scoreBreakdown": [
     { "name": "Domain Impersonation Risk", "points": 25, "category": "heuristic" },
@@ -535,8 +806,14 @@ GOOGLE_SAFE_BROWSING_API_KEY=your_safe_browsing_key_here
     { "name": "AI Model Phishing Contributor", "points": 30, "category": "ai", "detail": "Probability: 100% (PHISHING)" }
   ],
   "details": {
-    "heuristics": { "lookalikeDomain": true, "suspiciousKeywords": true },
-    "threatIntel": { "virusTotal": { "status": "CONNECTED", "detections": 0 } },
+    "heuristics": {
+      "lookalikeDomain": true,
+      "suspiciousKeywords": true
+    },
+    "threatIntel": {
+      "virusTotal": { "status": "NOT CONFIGURED", "configured": false, "detections": 0 },
+      "openPhish": { "status": "CONNECTED", "threatFound": false }
+    },
     "aiAnalysis": {
       "available": true,
       "prediction": "PHISHING",
@@ -547,7 +824,8 @@ GOOGLE_SAFE_BROWSING_API_KEY=your_safe_browsing_key_here
     "scoringModel": {
       "heuristicComponent": 35,
       "intelComponent": 0,
-      "aiComponent": 30
+      "aiComponent": 30,
+      "weightAllocation": "Multi-Layer Hybrid Scoring (Heuristics 0–40, Threat Intel 0–60, AI 0–30)"
     }
   }
 }
@@ -555,48 +833,71 @@ GOOGLE_SAFE_BROWSING_API_KEY=your_safe_browsing_key_here
 
 ---
 
-### Authentication & Scan History
+### Authentication & History Endpoints
 
 | Method | Endpoint | Description | Auth Required |
 | :--- | :--- | :--- | :---: |
-| `POST` | `/api/v1/auth/register` | Registers new user account (dispatches 6-digit email OTP) | No |
+| `POST` | `/api/v1/auth/register` | Registers new user account and dispatches 6-digit email OTP | No |
 | `POST` | `/api/v1/auth/login` | Authenticates user (requires verified email) | No |
-| `POST` | `/api/v1/auth/verify-email` | Verifies account using 6-digit OTP | No |
-| `POST` | `/api/v1/auth/resend-verification` | Resends OTP code (30s cooldown) | No |
-| `POST` | `/api/v1/auth/forgot-password` | Requests password reset token via email | No |
-| `POST` | `/api/v1/auth/reset-password` | Resets password using single-use token | No |
-| `GET` | `/api/v1/auth/me` | Retrieves authenticated user profile | Yes (JWT) |
+| `POST` | `/api/v1/auth/verify-email` | Validates 6-digit email OTP to verify account | No |
+| `POST` | `/api/v1/auth/resend-verification` | Resends OTP verification email (30-second cooldown) | No |
+| `POST` | `/api/v1/auth/forgot-password` | Initiates password reset via email token | No |
+| `POST` | `/api/v1/auth/reset-password` | Resets password using single-use reset token | No |
+| `GET` | `/api/v1/auth/me` | Retrieves profile of currently authenticated user | Yes (Bearer Token) |
 | `POST` | `/api/v1/auth/logout` | Clears user session | No |
 | `GET` | `/api/v1/history` | Fetches scan history for authenticated user or guest | Optional |
-| `POST` | `/api/v1/history` | Saves a scan record to history | Optional |
-| `DELETE` | `/api/v1/history/:id` | Deletes a specific scan record by ID | Optional |
+| `POST` | `/api/v1/history` | Persists a new scan record | Optional |
+| `DELETE` | `/api/v1/history/:id` | Deletes a single scan record by ID | Optional |
 | `DELETE` | `/api/v1/history` | Clears all scan history for the user | Optional |
 
 ---
 
-## Authentication & History Management
+## 18. Authentication & Account Management
 
-* **Guest Mode**: Allows up to 3 scans without registration, with history persisted in browser `localStorage`.
-* **Registered Mode**: Unlocks unlimited scans. When registered, scans are stored persistently in `backend/data/history.json` and associated with the user's verified account.
-* **Email Verification**: Enforces a 6-digit cryptographic OTP code expiring in 10 minutes with a 5-attempt limit to prevent brute-force attacks.
-* **Password Security**: Passwords are validated against length ($\ge 8$ characters) and complexity requirements, salted with a 16-byte random salt, and hashed via PBKDF2/SHA-256 (100,000 iterations).
-
----
-
-## System Limitations
-
-1. **URL-Lexical & Sequence Scope**: PhishSense evaluates URLs statically and via headless visual rendering; it does not execute deep dynamic JavaScript payloads, multi-step CAPTCHAs, or download file attachments.
-2. **Cloaked Phishing Kits**: Phishing kits that selectively serve benign content to security scanners (IP cloaking or geofencing) may evade initial heuristic detection until reported to threat intelligence feeds.
-3. **External API Rate Limits**: Threat intelligence lookup depth depends on available quota for third-party API keys (e.g. VirusTotal free tier limits). If keys are absent or rate-limited, the system falls back seamlessly to heuristics and local AI.
-4. **Zero-Day Obfuscations**: While URLBERT v4 generalizes across subword tokens, entirely novel evasion structures with authentic-looking domains and no security keywords may achieve lower initial risk scores until contextual threat signals appear.
+* **Guest Mode**: Allows up to 3 scans without registration. Scans are saved in browser `localStorage`.
+* **Registered Mode**: Unlocks unlimited scans. Scan records are synchronized to `backend/data/history.json`.
+* **Email Verification**: Enforces a 6-digit cryptographic OTP expiring in 10 minutes with a 5-attempt limit to prevent brute force.
+* **Password Policy & Hashing**:
+  - Requires a minimum of 12 characters.
+  - Salted with a 16-byte random salt and hashed using PBKDF2 with SHA-512 (100,000 iterations).
+  - Validated against common password blacklists.
+* **Session Security**: Authenticated requests use cryptographically signed session tokens sent via standard `Authorization: Bearer <token>` headers.
 
 ---
 
-## License & Academic Attribution
+## 19. Important System Limitations
 
-Developed for academic submission and cybersecurity research at the **Department of Computer Science, Kwame Nkrumah University of Science and Technology (KNUST)**.
+To maintain academic and scientific integrity, the system's operational boundaries should be understood:
 
-* **Student Name**: Adiza Malik
-* **Index Number**: 9026923
+1. **URL-Lexical & Preview Scope**: PhishSense evaluates URLs statically and renders a visual screenshot of landing pages. It does not execute dynamic multistage JavaScript malware payloads, execute file downloads, or bypass CAPTCHAs.
+2. **Cloaking & Geofencing**: Attackers employing IP cloaking (serving benign pages to security bots and phishing content only to targeted victim IPs) may present clean content to the headless preview scanner until community feeds flag the domain.
+3. **Third-Party API Rate Limits**: VirusTotal lookup depends on external API availability and key limits (e.g., standard free-tier limits). If API keys are absent or rate limits are reached, the system gracefully falls back to heuristics and local AI without crashing.
+4. **Novel Unseen Structures**: While URLBERT generalizes effectively across subword tokens, novel evasion techniques that use aged domains with legitimate-looking lexical structures and no credential keywords may require threat intelligence feeds for definitive flagging.
+5. **Flat-File Storage Scope**: User accounts and scan records are stored in local JSON files (`data/users.json` and `data/history.json`), which is suitable for academic demonstration and single-server evaluation, but not intended for distributed multi-node production clusters.
+
+---
+
+## 20. Oral Assessment Preparation Notes
+
+*Key talking points for project presentation and oral examination:*
+
+1. **Why Defense-in-Depth?**
+   * *Answer*: Single-point systems fail. Blacklists fail on zero-day attacks; heuristics alone can produce false positives on complex legitimate URLs; pure AI can experience token-bias on famous brand names. Combining deterministic rules, global threat feeds, and deep learning sequence classification creates resilient cross-verification.
+2. **Why URLBERT instead of traditional methods?**
+   * *Answer*: Traditional tabular models rely on manually engineered, rigid lexical features. URLBERT leverages the Transformer architecture with bidirectional self-attention to learn subword and contextual semantic relationships directly from the raw URL character string.
+3. **How does in-process ONNX execution improve performance?**
+   * *Answer*: Rather than orchestrating a Python runtime or microservice over HTTP (introducing cross-process latency and memory overhead), the model is serialized into ONNX format and executed directly within Node.js via `onnxruntime-node`, achieving sub-25ms inference on standard CPUs.
+4. **How does the system prevent SSRF during website preview?**
+   * *Answer*: Before making any network connection, `ssrfValidator.js` parses the URL, resolves all IPv4 and IPv6 DNS records, and rejects private, loopback, link-local, and cloud metadata ranges (e.g., `169.254.169.254`). Headless browser processes are further isolated using host-resolver mapping rules.
+5. **What is Explainable AI (XAI) in PhishSense?**
+   * *Answer*: PhishSense rejects black-box scoring. Every output includes an additive score breakdown showing the exact point contributions from heuristics, threat feeds, and URLBERT, accompanied by plain-English findings and practical user guidance.
+
+---
+
+## Academic Attribution & Submission
+
+* **Institution**: Kwame Nkrumah University of Science and Technology (KNUST)
+* **Department**: Department of Computer Science
+* **Student Name**: Adiza Malik (Index Number: 9026923)
 * **Supervisor**: Dr. Kate Takyi
 * **Academic Year**: 2025/2026
