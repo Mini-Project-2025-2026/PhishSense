@@ -1,0 +1,28 @@
+{
+  "name": "phishsense-backend",
+  "version": "1.0.0",
+  "description": "Backend API service for PhishSense URL analysis and detection",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "keywords": [
+    "phishing-detection",
+    "express",
+    "security"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemailer": "^9.0.5",
+    "onnxruntime-node": "^1.27.0",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

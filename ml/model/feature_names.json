@@ -1,0 +1,51 @@
+{
+  "feature_names": [
+    "url_length",
+    "hostname_length",
+    "path_length",
+    "dots_count",
+    "hyphens_count",
+    "underscores_count",
+    "slashes_count",
+    "special_chars_count",
+    "digits_count",
+    "digit_ratio",
+    "query_params_count",
+    "fragments_count",
+    "subdomains_count",
+    "has_https",
+    "has_http",
+    "has_ip_host",
+    "suspicious_tld",
+    "url_shortener",
+    "excessive_subdomains",
+    "keyword_login",
+    "keyword_secure",
+    "keyword_verify",
+    "keyword_account",
+    "keyword_update",
+    "keyword_password",
+    "keyword_payment",
+    "suspicious_keywords_count",
+    "brand_similarity_detected",
+    "homoglyph_idn_indicator"
+  ],
+  "metrics": {
+    "accuracy": 1.0,
+    "precision": 1.0,
+    "recall": 1.0,
+    "f1_score": 1.0,
+    "roc_auc": 0.9958,
+    "confusion_matrix": {
+      "tp": 120,
+      "tn": 120,
+      "fp": 0,
+      "fn": 0
+    }
+  },
+  "model_type": "Random Forest Classifier",
+  "n_estimators": 25,
+  "max_depth": 8,
+  "train_samples": 960,
+  "test_samples": 240
+}

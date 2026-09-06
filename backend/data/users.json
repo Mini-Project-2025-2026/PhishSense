@@ -1,0 +1,18 @@
+{
+  "mhalikadhizah123@gmail.com": {
+    "id": "usr_1787784395234_1rnz3",
+    "email": "mhalikadhizah123@gmail.com",
+    "name": "Adiza Malik",
+    "passwordHash": "456c366bb728395aeaf1624cba000771c7d25566341dfad7e7cf2ee996dca94998eb45a260e6a408caf7eec420d8212d879a1fdfb9bae0b64e754541113a92f6",
+    "passwordSalt": "15866c45c68be4913f65de5dda4d698d",
+    "role": "analyst",
+    "isVerified": true,
+    "verificationOtpHash": null,
+    "verificationExpiresAt": null,
+    "verificationAttempts": 0,
+    "lastResendAt": 1787784395234,
+    "createdAt": "2026-08-26T22:46:35.234Z",
+    "lastLoginAt": "2026-09-01T14:05:46.138Z",
+    "emailVerifiedAt": "2026-08-26T22:46:55.448Z"
+  }
+}
