@@ -55,7 +55,7 @@ PhishSense is a multi-layered, explainable cybersecurity web application designe
 17. [API Endpoints Reference](#17-api-endpoints-reference)
 18. [Authentication & Account Management](#18-authentication--account-management)
 19. [Important System Limitations](#19-important-system-limitations)
-20. [Oral Assessment Preparation Notes](#20-oral-assessment-preparation-notes)
+
 
 ---
 
@@ -874,23 +874,6 @@ To maintain academic and scientific integrity, the system's operational boundari
 3. **Third-Party API Rate Limits**: VirusTotal lookup depends on external API availability and key limits (e.g., standard free-tier limits). If API keys are absent or rate limits are reached, the system gracefully falls back to heuristics and local AI without crashing.
 4. **Novel Unseen Structures**: While URLBERT generalizes effectively across subword tokens, novel evasion techniques that use aged domains with legitimate-looking lexical structures and no credential keywords may require threat intelligence feeds for definitive flagging.
 5. **Flat-File Storage Scope**: User accounts and scan records are stored in local JSON files (`data/users.json` and `data/history.json`), which is suitable for academic demonstration and single-server evaluation, but not intended for distributed multi-node production clusters.
-
----
-
-## 20. Oral Assessment Preparation Notes
-
-*Key talking points for project presentation and oral examination:*
-
-1. **Why Defense-in-Depth?**
-   * *Answer*: Single-point systems fail. Blacklists fail on zero-day attacks; heuristics alone can produce false positives on complex legitimate URLs; pure AI can experience token-bias on famous brand names. Combining deterministic rules, global threat feeds, and deep learning sequence classification creates resilient cross-verification.
-2. **Why URLBERT instead of traditional methods?**
-   * *Answer*: Traditional tabular models rely on manually engineered, rigid lexical features. URLBERT leverages the Transformer architecture with bidirectional self-attention to learn subword and contextual semantic relationships directly from the raw URL character string.
-3. **How does in-process ONNX execution improve performance?**
-   * *Answer*: Rather than orchestrating a Python runtime or microservice over HTTP (introducing cross-process latency and memory overhead), the model is serialized into ONNX format and executed directly within Node.js via `onnxruntime-node`, achieving sub-25ms inference on standard CPUs.
-4. **How does the system prevent SSRF during website preview?**
-   * *Answer*: Before making any network connection, `ssrfValidator.js` parses the URL, resolves all IPv4 and IPv6 DNS records, and rejects private, loopback, link-local, and cloud metadata ranges (e.g., `169.254.169.254`). Headless browser processes are further isolated using host-resolver mapping rules.
-5. **What is Explainable AI (XAI) in PhishSense?**
-   * *Answer*: PhishSense rejects black-box scoring. Every output includes an additive score breakdown showing the exact point contributions from heuristics, threat feeds, and URLBERT, accompanied by plain-English findings and practical user guidance.
 
 ---
 
